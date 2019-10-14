@@ -6,7 +6,7 @@
 
 - name: JDK | Seeting JDK facts
   set_fact:
-    java_home: "{{ jdk_install_path }}/{{ oracle_jdk_version }}"
+    java_home: "{{ jdk_install_path }}"
 
 - name: JDK | Install JDK
   block:
@@ -20,29 +20,30 @@
     - name: JDK | Get The JDK archive from remote Server | using Download Script
       copy: 
         src: 'download_java.sh' 
-        dest='download_java.sh'
+        dest: "{{ jdk_install_path }}/download_java.sh"
+        
       register: result
-      args:
-        chdir: "{{ jdk_install_path }}"
 
     - name: JDK | Execute the shell script Now | Under /opt/jdk12
       shell: sh download_java.sh
       args:
-      chdir:  "{{ jdk_install_path }}"
+        chdir:  "{{ jdk_install_path }}"
+    - name: JDK | updating Folder permissions
+      shell: 'chmod -R 777 /opt/'
+     
 
     - name: Extract the JDK12 under | /opt/JDK12
       unarchive:
-        src: jdk-12.0.2_linux-x64_bin.tar.gz
+        src:   "{{ jdk_install_path }}/jdk-12.0.2_linux-x64_bin.tar.gz"
         dest:  "{{ jdk_install_path }}"
         owner: "{{ java_owner }}"
         group: "{{ java_group }}"
         mode: 0755
-     args:
-       chdir:  "{{ jdk_install_path }}"
+        remote_src: yes
 
     - name: JDK | Creating Java and JDK link executable
       file:
-        src: "{{ java_home }}/bin/{{ item }}"
+        src: "{{ java_home }}/{{ oracle_jdk_version }}/bin/{{ item }}"
         dest: "/usr/bin/{{ item }}"
         state: link
         mode: 0755
@@ -77,19 +78,3 @@
   shell: source /etc/environment
   args:
     executable: /bin/bash
-  
-
-  
- 
-    
-
-
-
-
-
-
-
-
-
-
-  
