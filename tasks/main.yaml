@@ -1,0 +1,95 @@
+---
+- name: JDK | Checking For | JDK Directory
+  stat: 
+    path: "{{ jdk_install_path }}"
+  register: jdk_path
+
+- name: JDK | Seeting JDK facts
+  set_fact:
+    java_home: "{{ jdk_install_path }}/{{ oracle_jdk_version }}"
+
+- name: JDK | Install JDK
+  block:
+    - name: JDK | Install JDK Directory | "{{ jdk_install_path }}"
+      file:
+        path: "{{ jdk_install_path }}"
+        state: directory
+        owner: "{{ java_owner }}"
+        group: "{{ java_group }}"
+        mode: 0755
+    - name: JDK | Get The JDK archive from remote Server | using Download Script
+      copy: 
+        src: 'download_java.sh' 
+        dest='download_java.sh'
+      register: result
+      args:
+        chdir: "{{ jdk_install_path }}"
+
+    - name: JDK | Execute the shell script Now | Under /opt/jdk12
+      shell: sh download_java.sh
+      args:
+      chdir:  "{{ jdk_install_path }}"
+
+    - name: Extract the JDK12 under | /opt/JDK12
+      unarchive:
+        src: jdk-12.0.2_linux-x64_bin.tar.gz
+        dest:  "{{ jdk_install_path }}"
+        owner: "{{ java_owner }}"
+        group: "{{ java_group }}"
+        mode: 0755
+     args:
+       chdir:  "{{ jdk_install_path }}"
+
+    - name: JDK | Creating Java and JDK link executable
+      file:
+        src: "{{ java_home }}/bin/{{ item }}"
+        dest: "/usr/bin/{{ item }}"
+        state: link
+        mode: 0755
+        owner: "{{  java_owner }}"
+        group: "{{ java_group }}"
+      loop:
+        - java
+        - javac
+  when: (jdk_path.stat.isdir is undefined) or (not jdk_path.stat.isdir)
+
+- name: JDK | ADD Java_HOME to .bashrc profile
+  blockinfile:
+    create: yes
+    path: "{{ java_owner_home }}/.bashrc"
+    marker: "#{mark} JAVA Settings Block"
+    insertafter: EOF
+    block: |
+      export JAVA_HOME={{ java_home }}
+      export PATH="{{ java_home }}/bin:$PATH"
+
+- name: JDK | ADD JAVA_HOME to | /etc/environment
+  blockinfile:
+    create: yes
+    path: "/etc/environment"
+    marker: "#{mark} JAVA Settings Block"
+    insertafter: EOF
+    block: |
+      export JAVA_HOME={{ java_home }}
+      export JAVA_HOME
+
+- name: JDK | FLUSTH Environment Variables
+  shell: source /etc/environment
+  args:
+    executable: /bin/bash
+  
+
+  
+ 
+    
+
+
+
+
+
+
+
+
+
+
+  
